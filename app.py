@@ -270,8 +270,30 @@ with st.sidebar:
     st.markdown("### 🎨 Color Analysis")
     st.markdown("- Bright Colors\n- Dark Colors")
     
-    st.markdown("### 👕 Clothing Types")
-    st.markdown("- Shirts/Blouses\n- Tops/T-shirts\n- Pants\n- Dresses\n- Jackets\n- And more...")
+    # st.markdown("### 👕 Clothing Types")
+    st.markdown("### 👕 Clothing Types We Detect")
+    # Main Categories
+    st.markdown("**👔 Tops & Upper Body:**")
+    st.markdown("""
+    - Shirt, Blouse
+    - Top, T-shirt, Sweatshirt  
+    - Sweater
+    - Cardigan
+    - Jacket
+    - Vest
+    - Coat
+    - Cape
+    """)
+    
+    t.markdown("**👖 Bottoms & Lower Body:**")
+    st.markdown("""
+    - Pants
+    - Shorts
+    - Skirt
+    """)
+    
+    
+    # st.markdown("- Shirts/Blouses\n- Tops/T-shirts\n- Pants\n- Dresses\n- Jackets\n- And more...")
 
 st.markdown("---")
 st.caption("AI Laundry Sorter • Complete System: Fabric + Color + Clothing Type Detection")
