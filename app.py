@@ -292,6 +292,10 @@ with st.sidebar:
     - Skirt
     """)
     
+    st.markdown("**👗 Full Body & Dresses:**")
+    st.markdown("""
+        • Dress • Jumpsuit
+        """)
     
     # st.markdown("- Shirts/Blouses\n- Tops/T-shirts\n- Pants\n- Dresses\n- Jackets\n- And more...")
 
