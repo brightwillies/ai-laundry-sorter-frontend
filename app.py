@@ -49,7 +49,7 @@ st.set_page_config(
 )
 
 # ============================
-# CUSTOM STYLING
+# CUSTOM STYLING (IMPROVED VISIBILITY)
 # ============================
 st.markdown("""
 <style>
@@ -64,33 +64,51 @@ st.markdown("""
         padding: 1.5rem;
         border-radius: 10px;
         margin: 1rem 0;
+        border: 1px solid #ddd;
     }
     .bright-section {
-        background-color: #fff2cc;
+        background-color: #fff9c4;
         padding: 1rem;
         border-radius: 8px;
         margin: 0.5rem 0;
-        border-left: 4px solid #ffd700;
+        border-left: 4px solid #ffd600;
+        color: #333333;
     }
     .dark-section {
-        background-color: #333333;
+        background-color: #424242;
         color: white;
         padding: 1rem;
         border-radius: 8px;
         margin: 0.5rem 0;
-        border-left: 4px solid #666666;
+        border-left: 4px solid #212121;
     }
     .washing-tip {
-        background-color: #d4edda;
+        background-color: #e8f5e8;
         padding: 1rem;
         border-radius: 8px;
-        border-left: 4px solid #28a745;
+        border-left: 4px solid #4caf50;
+        color: #2e7d32;
+        margin: 0.5rem 0;
     }
     .leather-tip {
-        background-color: #f8d7da;
+        background-color: #ffebee;
         padding: 1rem;
         border-radius: 8px;
-        border-left: 4px solid #dc3545;
+        border-left: 4px solid #f44336;
+        color: #c62828;
+        margin: 0.5rem 0;
+    }
+    /* Fix progress bar text visibility */
+    .stProgress > div > div > div > div {
+        color: black !important;
+        font-weight: bold;
+    }
+    /* Better text contrast */
+    .bright-section p, .bright-section div {
+        color: #333333 !important;
+    }
+    .dark-section p, .dark-section div {
+        color: white !important;
     }
 </style>
 """, unsafe_allow_html=True)
