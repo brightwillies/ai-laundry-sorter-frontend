@@ -285,7 +285,7 @@ with st.sidebar:
     - Cape
     """)
     
-    t.markdown("**👖 Bottoms & Lower Body:**")
+    st.markdown("**👖 Bottoms & Lower Body:**")
     st.markdown("""
     - Pants
     - Shorts
