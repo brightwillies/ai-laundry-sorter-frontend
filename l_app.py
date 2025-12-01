@@ -13,73 +13,7 @@ COLOR_API_URL = "https://color-type-api.onrender.com/predict"
 FABRIC_API_URL = "https://fabric-type-api.onrender.com/predict"
 
 # ============================
-# FABRIC CARE GUIDE
-# ============================
-care_guide = {
-    'cotton': {
-        'title': 'Cotton — Safe & Easy',
-        'instructions': [
-            "Machine wash cold or warm",
-            "Normal or gentle cycle",
-            "Tumble dry low or air dry",
-            "Can handle regular detergent"
-        ],
-        'emoji': '👕'
-    },
-    'denim': {
-        'title': 'Denim — Preserve the Color',
-        'instructions': [
-            "Machine wash cold, inside out",
-            "Gentle cycle only",
-            "Air dry preferred (prevents fading)",
-            "Wash infrequently"
-        ],
-        'emoji': '👖'
-    },
-    'leather': {
-        'title': 'Leather — DO NOT WASH!',
-        'instructions': [
-            "Never machine wash",
-            "Wipe with damp cloth only",
-            "Professional leather cleaning only",
-            "Condition regularly"
-        ],
-        'emoji': '🧥'
-    },
-    'linen': {
-        'title': 'Linen — Handle with Care',
-        'instructions': [
-            "Machine or hand wash cold",
-            "Gentle cycle",
-            "Air dry flat",
-            "Iron while still damp"
-        ],
-        'emoji': '👔'
-    },
-    'polyester': {
-        'title': 'Polyester — Very Durable',
-        'instructions': [
-            "Machine wash warm",
-            "Permanent press cycle",
-            "Tumble dry low",
-            "Resists wrinkles & shrinking"
-        ],
-        'emoji': '🎽'
-    },
-    'silk': {
-        'title': 'Silk — Delicate Luxury',
-        'instructions': [
-            "Hand wash cold or dry clean",
-            "Use silk/gentle detergent",
-            "Line dry in shade",
-            "Never wring or twist"
-        ],
-        'emoji': '✨'
-    }
-}
-
-# ============================
-# COLOR CARE GUIDE
+# WASHING RECOMMENDATIONS (FIXED TYPOS)
 # ============================
 BRIGHT_WASHING = """
 ✨ **Bright Clothes Care:**
@@ -95,6 +29,14 @@ DARK_WASHING = """
 - Use cold water to prevent fading
 - Turn inside out before washing
 - Avoid over-drying
+"""
+
+LEATHER_WASHING = """
+🧥 **Leather Care:**
+- Professional cleaning recommended
+- Spot clean with damp cloth if needed
+- Avoid machine washing
+- Store in cool, dry place
 """
 
 # ============================
@@ -148,14 +90,6 @@ st.markdown("""
         color: #2e7d32;
         margin: 0.5rem 0;
     }
-    .fabric-tip {
-        background-color: #e3f2fd;
-        padding: 1rem;
-        border-radius: 8px;
-        border-left: 4px solid #2196f3;
-        color: #1565c0;
-        margin: 0.5rem 0;
-    }
     .leather-tip {
         background-color: #ffebee;
         padding: 1rem;
@@ -199,7 +133,7 @@ if uploaded_files:
         col1, col2 = st.columns([1, 2])
         
         with col1:
-            # Display image
+            # Display image (FIXED: use_container_width instead of use_column_width)
             image = Image.open(uploaded_file)
             st.image(image, caption=uploaded_file.name, use_container_width=True)
         
@@ -211,28 +145,7 @@ if uploaded_files:
                     image.save(img_bytes, format='JPEG')
                     img_bytes.seek(0)
                     
-                    # STEP 1: First check if it's clothing using cloth-type API
-                    cloth_response = requests.post(
-                        CLOTH_API_URL,
-                        files={"file": (uploaded_file.name, img_bytes, "image/jpeg")},
-                        timeout=30
-                    )
-                    
-                    if cloth_response.status_code != 200:
-                        st.error(f"❌ Error calling Cloth Type API: {cloth_response.status_code}")
-                        continue
-                    
-                    cloth_data = cloth_response.json()
-                    
-                    # Check if it's NOT clothing
-                    if not cloth_data.get('is_clothing', True) or cloth_data['cloth_type'] == 'Not Clothing':
-                        st.warning("🚫 **Not Clothing** - This item doesn't appear to be clothing")
-                        st.markdown(f"**Confidence**: {cloth_data['confidence']:.1%}")
-                        continue
-                    
-                    # STEP 2: If it IS clothing, call fabric and color APIs
-                    img_bytes.seek(0)  # Reset stream for next API calls
-                    
+                    # Call all three APIs
                     fabric_response = requests.post(
                         FABRIC_API_URL,
                         files={"file": (uploaded_file.name, img_bytes, "image/jpeg")},
@@ -245,66 +158,62 @@ if uploaded_files:
                         files={"file": (uploaded_file.name, img_bytes, "image/jpeg")},
                         timeout=30
                     )
+                    img_bytes.seek(0)
                     
-                    if fabric_response.status_code == 200 and color_response.status_code == 200:
+                    cloth_response = requests.post(
+                        CLOTH_API_URL,
+                        files={"file": (uploaded_file.name, img_bytes, "image/jpeg")},
+                        timeout=30
+                    )
+                    
+                    if (fabric_response.status_code == 200 and 
+                        color_response.status_code == 200 and 
+                        cloth_response.status_code == 200):
                         
                         fabric_data = fabric_response.json()
                         color_data = color_response.json()
+                        cloth_data = cloth_response.json()
                         
                         # Display results in hierarchy
                         st.markdown(f'<div class="fabric-section">', unsafe_allow_html=True)
+                        st.markdown(f"### 🧵 **Fabric**: {fabric_data['fabric_type'].title()}")
+                        st.metric("Confidence", f"{fabric_data['confidence']:.1f}%")
                         
-                        # Clothing Type
-                        cloth_type = cloth_data['cloth_type']
-                        cloth_confidence = cloth_data['confidence']
-                        st.markdown(f"#### 👕 **Clothing Type**: {cloth_type}")
-                        st.markdown(f"**Confidence**: {cloth_confidence:.1%}")
-                        
-                        # Fabric Type
-                        fabric_type = fabric_data['predicted_class']
-                        fabric_confidence = fabric_data['confidence']
-                        st.markdown(f"#### 🧵 **Fabric**: {fabric_type.title()}")
-                        st.metric("Fabric Confidence", f"{fabric_confidence:.1f}%")
-                        
-                        # Special handling for leather
-                        if fabric_type == 'leather':
-                            # Display fabric care guide for leather
-                            fabric_guide = care_guide[fabric_type]
-                            st.markdown(f'<div class="leather-tip">', unsafe_allow_html=True)
-                            st.markdown(f"### {fabric_guide['emoji']} {fabric_guide['title']}")
-                            for instruction in fabric_guide['instructions']:
-                                st.markdown(f"• {instruction}")
-                            st.markdown("</div>", unsafe_allow_html=True)
-                        
-                        else:
-                            # For non-leather fabrics, show both fabric and color care guides
+                        # Check if it's clothing
+                        if cloth_data.get('is_clothing', True) and cloth_data['cloth_type'] != 'Not Clothing':
+                            cloth_type = cloth_data['cloth_type']
+                            cloth_confidence = cloth_data['confidence']
                             
-                            # FABRIC CARE GUIDE
-                            fabric_guide = care_guide[fabric_type]
-                            st.markdown(f'<div class="fabric-tip">', unsafe_allow_html=True)
-                            st.markdown(f"### {fabric_guide['emoji']} {fabric_guide['title']}")
-                            for instruction in fabric_guide['instructions']:
-                                st.markdown(f"• {instruction}")
-                            st.markdown("</div>", unsafe_allow_html=True)
-                            
-                            # COLOR CARE GUIDE
-                            color_type = color_data['color']
-                            color_confidence = color_data['confidence']
-                            
-                            # Display color section with appropriate styling
-                            if color_type == "bright":
-                                washing_tip = BRIGHT_WASHING
-                                st.markdown('<div class="bright-section">', unsafe_allow_html=True)
-                                st.markdown(f"##### 🌟 **Color**: {color_type.title()} ({color_confidence:.1%})")
-                                st.markdown("</div>", unsafe_allow_html=True)
+                            # For leather, show special washing (ignore color)
+                            if fabric_data['fabric_type'] == 'leather':
+                                st.markdown(f"#### 👕 **Clothing Type**: {cloth_type}")
+                                st.markdown(f"**Confidence**: {cloth_confidence:.1%}")
+                                st.markdown(f'<div class="leather-tip">{LEATHER_WASHING}</div>', unsafe_allow_html=True)
                             else:
-                                washing_tip = DARK_WASHING
-                                st.markdown('<div class="dark-section">', unsafe_allow_html=True)
-                                st.markdown(f"##### 🌑 **Color**: {color_type.title()} ({color_confidence:.1%})")
-                                st.markdown("</div>", unsafe_allow_html=True)
-                            
-                            # Show color washing advice
-                            st.markdown(f'<div class="washing-tip">{washing_tip}</div>', unsafe_allow_html=True)
+                                # For other fabrics, show color classification
+                                color_type = color_data['color']
+                                color_confidence = color_data['confidence']
+                                
+                                st.markdown(f"#### 👕 **Clothing Type**: {cloth_type}")
+                                st.markdown(f"**Confidence**: {cloth_confidence:.1%}")
+                                
+                                # Display color section with appropriate styling
+                                if color_type == "bright":
+                                    st.markdown('<div class="bright-section">', unsafe_allow_html=True)
+                                    st.markdown(f"##### 🌟 **Color**: {color_type.title()} ({color_confidence:.1%})")
+                                    st.markdown("</div>", unsafe_allow_html=True)
+                                    washing_tip = BRIGHT_WASHING
+                                else:
+                                    st.markdown('<div class="dark-section">', unsafe_allow_html=True)
+                                    st.markdown(f"##### 🌑 **Color**: {color_type.title()} ({color_confidence:.1%})")
+                                    st.markdown("</div>", unsafe_allow_html=True)
+                                    washing_tip = DARK_WASHING
+                                
+                                # Show combined washing advice (FIXED: Proper formatting)
+                                st.markdown(f'<div class="washing-tip">{washing_tip}</div>', unsafe_allow_html=True)
+                                st.markdown(f"**Fabric Care**: {fabric_data.get('washing_advice', 'Follow fabric care instructions')}")
+                        else:
+                            st.warning("🚫 **Not Clothing** - This item doesn't appear to be clothing")
                         
                         st.markdown("</div>", unsafe_allow_html=True)
                         
@@ -314,12 +223,8 @@ if uploaded_files:
                             
                             with col_pred1:
                                 st.markdown("**Fabric Probabilities:**")
-                                if 'all_predictions' in fabric_data:
-                                    for fabric, prob in fabric_data['all_predictions'].items():
-                                        st.progress(prob/100, text=f"{fabric}: {prob:.1f}%")
-                                else:
-                                    # Fallback if all_predictions not available
-                                    st.info("Detailed fabric predictions not available")
+                                for fabric, prob in fabric_data['all_predictions'].items():
+                                    st.progress(prob/100, text=f"{fabric}: {prob:.1f}%")
                             
                             with col_pred2:
                                 st.markdown("**Clothing Type Probabilities:**")
@@ -333,9 +238,10 @@ if uploaded_files:
                                 st.metric("Colorfulness", f"{color_data['colorfulness']:.1f}")
                     
                     else:
-                        st.error("❌ Error calling Fabric or Color APIs")
+                        st.error("❌ Error calling APIs")
                         st.write(f"Fabric API: {fabric_response.status_code}")
                         st.write(f"Color API: {color_response.status_code}")
+                        st.write(f"Cloth API: {cloth_response.status_code}")
                         
                 except Exception as e:
                     st.error(f"❌ Error processing image: {str(e)}")
@@ -364,6 +270,7 @@ with st.sidebar:
     st.markdown("### 🎨 Color Analysis")
     st.markdown("- Bright Colors\n- Dark Colors")
     
+    # st.markdown("### 👕 Clothing Types")
     st.markdown("### 👕 Clothing Types We Detect")
     # Main Categories
     st.markdown("**👔 Tops & Upper Body:**")
@@ -389,6 +296,8 @@ with st.sidebar:
     st.markdown("""
         • Dress • Jumpsuit
         """)
+    
+    # st.markdown("- Shirts/Blouses\n- Tops/T-shirts\n- Pants\n- Dresses\n- Jackets\n- And more...")
 
 st.markdown("---")
 st.caption("AI Laundry Sorter • Complete System: Fabric + Color + Clothing Type Detection")
