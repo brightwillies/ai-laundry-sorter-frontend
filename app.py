@@ -107,7 +107,7 @@ st.set_page_config(
 )
 
 # ============================
-# CUSTOM STYLING (IMPROVED VISIBILITY)
+# CUSTOM STYLING
 # ============================
 st.markdown("""
 <style>
@@ -164,12 +164,10 @@ st.markdown("""
         color: #c62828;
         margin: 0.5rem 0;
     }
-    /* Fix progress bar text visibility */
     .stProgress > div > div > div > div {
         color: black !important;
         font-weight: bold;
     }
-    /* Better text contrast */
     .bright-section p, .bright-section div {
         color: #333333 !important;
     }
@@ -223,6 +221,7 @@ if uploaded_files:
                         continue
                     
                     cloth_data = cloth_response.json()
+                    st.write("🔍 Cloth API Response:", cloth_data)  # Debug output
                     
                     # Check if it's NOT clothing
                     if not cloth_data.get('is_clothing', True) or cloth_data['cloth_type'] == 'Not Clothing':
@@ -246,30 +245,67 @@ if uploaded_files:
                         timeout=30
                     )
                     
-                    if fabric_response.status_code == 200 and color_response.status_code == 200:
+                    # Debug: Show API responses
+                    st.write("🔍 Fabric API Status:", fabric_response.status_code)
+                    st.write("🔍 Color API Status:", color_response.status_code)
+                    
+                    if fabric_response.status_code != 200:
+                        st.error(f"❌ Fabric API Error: {fabric_response.status_code}")
+                        st.write("Fabric API Response:", fabric_response.text)
+                        continue
                         
-                        fabric_data = fabric_response.json()
-                        color_data = color_response.json()
-                        
-                        # Display results in hierarchy
-                        st.markdown(f'<div class="fabric-section">', unsafe_allow_html=True)
-                        
-                        # Clothing Type
-                        cloth_type = cloth_data['cloth_type']
-                        cloth_confidence = cloth_data['confidence']
-                        st.markdown(f"#### 👕 **Clothing Type**: {cloth_type}")
-                        st.markdown(f"**Confidence**: {cloth_confidence:.1%}")
-                        
-                        # Fabric Type
+                    if color_response.status_code != 200:
+                        st.error(f"❌ Color API Error: {color_response.status_code}")
+                        st.write("Color API Response:", color_response.text)
+                        continue
+                    
+                    fabric_data = fabric_response.json()
+                    color_data = color_response.json()
+                    
+                    # Debug: Show the actual response structures
+                    st.write("🔍 Fabric API Response:", fabric_data)
+                    st.write("🔍 Color API Response:", color_data)
+                    
+                    # Display results in hierarchy
+                    st.markdown(f'<div class="fabric-section">', unsafe_allow_html=True)
+                    
+                    # Clothing Type
+                    cloth_type = cloth_data['cloth_type']
+                    cloth_confidence = cloth_data['confidence']
+                    st.markdown(f"#### 👕 **Clothing Type**: {cloth_type}")
+                    st.markdown(f"**Confidence**: {cloth_confidence:.1%}")
+                    
+                    # Extract fabric type - handle different possible response structures
+                    fabric_type = None
+                    fabric_confidence = None
+                    
+                    # Try different possible keys for fabric type
+                    if 'predicted_class' in fabric_data:
                         fabric_type = fabric_data['predicted_class']
-                        fabric_confidence = fabric_data['confidence']
+                        fabric_confidence = fabric_data.get('confidence', 0)
+                    elif 'fabric_type' in fabric_data:
+                        fabric_type = fabric_data['fabric_type']
+                        fabric_confidence = fabric_data.get('confidence', 0)
+                    elif 'class' in fabric_data:
+                        fabric_type = fabric_data['class']
+                        fabric_confidence = fabric_data.get('confidence', 0)
+                    else:
+                        # If no standard key found, use the first key that seems to be the prediction
+                        for key, value in fabric_data.items():
+                            if key in ['predicted_class', 'fabric_type', 'class', 'prediction']:
+                                fabric_type = value
+                                fabric_confidence = fabric_data.get('confidence', 0)
+                                break
+                    
+                    if fabric_type:
                         st.markdown(f"#### 🧵 **Fabric**: {fabric_type.title()}")
-                        st.metric("Fabric Confidence", f"{fabric_confidence:.1f}%")
+                        if fabric_confidence:
+                            st.metric("Fabric Confidence", f"{fabric_confidence:.1f}%")
                         
                         # Special handling for leather
-                        if fabric_type == 'leather':
+                        if fabric_type.lower() == 'leather':
                             # Display fabric care guide for leather
-                            fabric_guide = care_guide[fabric_type]
+                            fabric_guide = care_guide.get(fabric_type.lower(), care_guide['leather'])
                             st.markdown(f'<div class="leather-tip">', unsafe_allow_html=True)
                             st.markdown(f"### {fabric_guide['emoji']} {fabric_guide['title']}")
                             for instruction in fabric_guide['instructions']:
@@ -280,7 +316,7 @@ if uploaded_files:
                             # For non-leather fabrics, show both fabric and color care guides
                             
                             # FABRIC CARE GUIDE
-                            fabric_guide = care_guide[fabric_type]
+                            fabric_guide = care_guide.get(fabric_type.lower(), care_guide['cotton'])  # Default to cotton if fabric not found
                             st.markdown(f'<div class="fabric-tip">', unsafe_allow_html=True)
                             st.markdown(f"### {fabric_guide['emoji']} {fabric_guide['title']}")
                             for instruction in fabric_guide['instructions']:
@@ -288,11 +324,11 @@ if uploaded_files:
                             st.markdown("</div>", unsafe_allow_html=True)
                             
                             # COLOR CARE GUIDE
-                            color_type = color_data['color']
-                            color_confidence = color_data['confidence']
+                            color_type = color_data.get('color', 'bright')
+                            color_confidence = color_data.get('confidence', 0)
                             
                             # Display color section with appropriate styling
-                            if color_type == "bright":
+                            if color_type.lower() == "bright":
                                 washing_tip = BRIGHT_WASHING
                                 st.markdown('<div class="bright-section">', unsafe_allow_html=True)
                                 st.markdown(f"##### 🌟 **Color**: {color_type.title()} ({color_confidence:.1%})")
@@ -305,40 +341,45 @@ if uploaded_files:
                             
                             # Show color washing advice
                             st.markdown(f'<div class="washing-tip">{washing_tip}</div>', unsafe_allow_html=True)
-                        
-                        st.markdown("</div>", unsafe_allow_html=True)
-                        
-                        # Show detailed predictions
-                        with st.expander("View detailed predictions"):
-                            col_pred1, col_pred2, col_pred3 = st.columns(3)
-                            
-                            with col_pred1:
-                                st.markdown("**Fabric Probabilities:**")
-                                if 'all_predictions' in fabric_data:
-                                    for fabric, prob in fabric_data['all_predictions'].items():
-                                        st.progress(prob/100, text=f"{fabric}: {prob:.1f}%")
-                                else:
-                                    # Fallback if all_predictions not available
-                                    st.info("Detailed fabric predictions not available")
-                            
-                            with col_pred2:
-                                st.markdown("**Clothing Type Probabilities:**")
-                                for cloth, prob in cloth_data['all_predictions'].items():
-                                    st.progress(prob, text=f"{cloth}: {prob:.1%}")
-                            
-                            with col_pred3:
-                                st.markdown("**Color Analysis:**")
-                                st.metric("Brightness", f"{color_data['brightness_L']:.1f}")
-                                st.metric("Saturation", f"{color_data['saturation']:.1f}")
-                                st.metric("Colorfulness", f"{color_data['colorfulness']:.1f}")
-                    
                     else:
-                        st.error("❌ Error calling Fabric or Color APIs")
-                        st.write(f"Fabric API: {fabric_response.status_code}")
-                        st.write(f"Color API: {color_response.status_code}")
+                        st.error("❌ Could not determine fabric type from API response")
+                        st.write("Fabric API returned:", fabric_data)
+                    
+                    st.markdown("</div>", unsafe_allow_html=True)
+                    
+                    # Show detailed predictions
+                    with st.expander("View detailed predictions"):
+                        col_pred1, col_pred2, col_pred3 = st.columns(3)
+                        
+                        with col_pred1:
+                            st.markdown("**Fabric Probabilities:**")
+                            if 'all_predictions' in fabric_data:
+                                for fabric, prob in fabric_data['all_predictions'].items():
+                                    st.progress(prob/100, text=f"{fabric}: {prob:.1f}%")
+                            elif 'probabilities' in fabric_data:
+                                for fabric, prob in fabric_data['probabilities'].items():
+                                    st.progress(prob/100, text=f"{fabric}: {prob:.1f}%")
+                            else:
+                                st.info("Detailed fabric predictions not available")
+                        
+                        with col_pred2:
+                            st.markdown("**Clothing Type Probabilities:**")
+                            for cloth, prob in cloth_data['all_predictions'].items():
+                                st.progress(prob, text=f"{cloth}: {prob:.1%}")
+                        
+                        with col_pred3:
+                            st.markdown("**Color Analysis:**")
+                            if 'brightness_L' in color_data:
+                                st.metric("Brightness", f"{color_data['brightness_L']:.1f}")
+                            if 'saturation' in color_data:
+                                st.metric("Saturation", f"{color_data['saturation']:.1f}")
+                            if 'colorfulness' in color_data:
+                                st.metric("Colorfulness", f"{color_data['colorfulness']:.1f}")
                         
                 except Exception as e:
                     st.error(f"❌ Error processing image: {str(e)}")
+                    import traceback
+                    st.write("Full error details:", traceback.format_exc())
 
 # Sidebar information
 with st.sidebar:
@@ -365,7 +406,6 @@ with st.sidebar:
     st.markdown("- Bright Colors\n- Dark Colors")
     
     st.markdown("### 👕 Clothing Types We Detect")
-    # Main Categories
     st.markdown("**👔 Tops & Upper Body:**")
     st.markdown("""
     - Shirt, Blouse
