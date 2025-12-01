@@ -183,7 +183,7 @@ st.markdown("""
 # MAIN APP
 # ============================
 st.markdown('<div class="main-header">🧺 AI Laundry Sorter</div>', unsafe_allow_html=True)
-st.markdown("### Upload clothing images → Get fabric type, color, clothing category, and washing recommendations")
+st.markdown("### UUpload clothing images → Get fabric type, color, clothing category, and washing recommendations")
 
 # File upload
 uploaded_files = st.file_uploader(
