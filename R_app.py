@@ -164,6 +164,17 @@ st.markdown("""
         color: #c62828;
         margin: 0.5rem 0;
     }
+    .clear-button {
+        background-color: #ff4444;
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+    .clear-button:hover {
+        background-color: #cc0000;
+    }
     .stProgress > div > div > div > div {
         color: black !important;
         font-weight: bold;
@@ -183,6 +194,13 @@ st.markdown("""
 st.markdown('<div class="main-header">🧺 AI Laundry Sorter</div>', unsafe_allow_html=True)
 st.markdown("### Upload clothing images → Get fabric type, color, clothing category, and washing recommendations")
 
+# Clear button at the top
+col1, col2 = st.columns([3, 1])
+with col2:
+    if st.button("🗑️ Clear All", type="secondary", use_container_width=True):
+        st.session_state.clear()
+        st.rerun()
+
 # File upload
 uploaded_files = st.file_uploader(
     "Choose clothing images",
@@ -192,6 +210,15 @@ uploaded_files = st.file_uploader(
 )
 
 if uploaded_files:
+    # Clear button when files are uploaded
+    col1, col2, col3 = st.columns([2, 1, 1])
+    with col3:
+        if st.button("🚫 Clear Results", type="primary", use_container_width=True):
+            st.session_state.clear()
+            st.rerun()
+    
+    st.write(f"**📁 {len(uploaded_files)} image(s) uploaded**")
+    
     for uploaded_file in uploaded_files:
         st.markdown("---")
         col1, col2 = st.columns([1, 2])
@@ -387,6 +414,12 @@ with st.sidebar:
     st.markdown("""
         • Dress • Jumpsuit
         """)
+    
+    # Clear button in sidebar too
+    st.markdown("---")
+    if st.button("🗑️ Clear All Images & Results", type="secondary", use_container_width=True):
+        st.session_state.clear()
+        st.rerun()
 
 st.markdown("---")
 st.caption("AI Laundry Sorter • Complete System: Fabric + Color + Clothing Type Detection")
